@@ -1,0 +1,2727 @@
+[
+    {
+        "id": "bb7ae1c9.1e44b",
+        "type": "tab",
+        "label": "Pool and UPS monitor",
+        "disabled": false,
+        "info": ""
+    },
+    {
+        "id": "410497889f014e5e",
+        "type": "tab",
+        "label": "Powerwall",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "9c01fcbf7baee112",
+        "type": "tab",
+        "label": "UPS",
+        "disabled": true,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "31b7d41c54ad1d1a",
+        "type": "tab",
+        "label": "Immersion",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "93f485839dfa27a8",
+        "type": "subflow",
+        "name": "Solar forecast",
+        "info": "This subflow uses the http request node to fetch solar forecasts for geographical positions, using the API from https://forecast.solar/. Please check their website and consider getting a paid account.\n\nDo note that, on a free account, you are limited in the number of requests to do. Also note that the data only gets updated once every 15 minutes, so there is no reason to query more often. There is rate limiting built in the subflow not to perform requests more than once every 15 minutes.\n\n# Configuration\n\nIt uses the parameters as described on: http://doc.forecast.solar/doku.php\n\n - `:apikey` - personal API key for registered users\n - `:lat` - latitude of location, -90 (south) … 90 (north); Internal precission is 0.0001 or abt. 10 m\n - `:lon` - longitude of location, -180 (west) … 180 (east); Internal precission is 0.0001 or abt. 10 m\n - `:dec` - plane declination, 0 (horizontal) … 90 (vertical); Internal precission is integer\n - `:az` - plane azimuth, -180 … 180 (-180 = north, -90 = east, 0 = south, 90 = west, 180 = north); Internal precission is integer\n - `:kwp` - installed modules power in kilo watt peak (kWp)\n\nYou can choose between 3 different type of requests. Note that only `estimate` is available on the free plan.\n\n- `estimate` - this is the forecasted estimate that your panels should produce (given the right parameter settings)\n- `history` - historycal data\n- `clear sky` - estimate given if there would be a clear sky tomorrow\n\nIn case of estimates, one of the following options can be selected:\n- `watts` - Watts (power) average for the period\n- `watthours/period` - Watt hours (energy) for the period\n- `watthours` - Watt hours (energy) summarized over the day\n- `watthours/day` - Watt hours (energy) summarized for each day\n\nFor the graph output there are some extra settings available:\n\n- _Output in kWh_ - when checked output can be set to kWh instead of Wh\n- _Show todays forecast_ - whether or not to include todays forecast\n- _Days to forecast_ - the number of days to forecast (excluding today). Note that you can not get more days forecasted than your API key allows.\n- _Widen graph_ - widen the graph to only show non-zero values\n- _Show day instead of date_ - Show the day instead of the date in the series and labels\n\nThe optional _horizon_ field can be filled out in case an object blocks\nyour solar panels from the sun. See the description [here](https://doc.forecast.solar/horizon)\non what numbers to fill out.\nLeave it empty if you have no objects blocking your panels.\n\n# Input \n\nThe input is for triggering the solar forecast request. \nIt triggers when injecting a message into the node.\n\n# Output\n\nThere are two outputs. The first output is an object with the result and a status message stored into the `msg.payload`.\n\nMost important is the `msg.payload.result`, which contains the estimated production of the panels. E.g.:\n\n```\npayload: object\n  result: object\n    2022-11-28: 23\n    2022-11-29: 35\n```\n\nThe `msg.payload.message` gives information on how successful the query was, the exitcode of the query and the status of the rate limit (how many queries you have left).\n\nThe **second** output can be directly linked to a line or a bar chart, quickly giving a once-glance overview for the predicted forecast.\n\n# Status\n\nInitially the status of the note will be a blue dot, showing \"_Unknown limit_\", as it is unaware of the set ratelmits. After the first request, the returned ratelimit will be put in the text in the form of `remaining/limit`. If more than half the limit is remaining, the dot will be green. If less then half the limit is remaining, the dot will be yellow. If no limit is left, the dot will turn red.\nPlease keep in mind that the ratelimit will be reset after one hour, so you can send a new request after that hour.\n\nIf something is wrong in the API request, the dot will turn red\nand the message will contain the msg.payload with the error. This\nhappens typically when the API is temporally down for maintenance.",
+        "category": "",
+        "in": [
+            {
+                "x": 240,
+                "y": 100,
+                "wires": [
+                    {
+                        "id": "c8dc6aa14b9f3e92"
+                    }
+                ]
+            }
+        ],
+        "out": [
+            {
+                "x": 760,
+                "y": 260,
+                "wires": [
+                    {
+                        "id": "2f42837904c91d73",
+                        "port": 0
+                    },
+                    {
+                        "id": "fcc8d69a3ab88e6d",
+                        "port": 0
+                    }
+                ]
+            },
+            {
+                "x": 770,
+                "y": 340,
+                "wires": [
+                    {
+                        "id": "5b0a430fb61e70e7",
+                        "port": 0
+                    }
+                ]
+            }
+        ],
+        "env": [
+            {
+                "name": "latitude",
+                "type": "num",
+                "value": "51.3",
+                "ui": {
+                    "icon": "font-awesome/fa-location-arrow",
+                    "label": {
+                        "en-US": "Latitude"
+                    },
+                    "type": "input",
+                    "opts": {
+                        "types": [
+                            "num"
+                        ]
+                    }
+                }
+            },
+            {
+                "name": "longitude",
+                "type": "num",
+                "value": "5.6",
+                "ui": {
+                    "icon": "font-awesome/fa-location-arrow",
+                    "label": {
+                        "en-US": "Longitude"
+                    },
+                    "type": "input",
+                    "opts": {
+                        "types": [
+                            "num"
+                        ]
+                    }
+                }
+            },
+            {
+                "name": "declination",
+                "type": "num",
+                "value": "37",
+                "ui": {
+                    "icon": "font-awesome/fa-chevron-up",
+                    "label": {
+                        "en-US": "Declination"
+                    },
+                    "type": "input",
+                    "opts": {
+                        "types": [
+                            "num"
+                        ]
+                    }
+                }
+            },
+            {
+                "name": "azimuth",
+                "type": "num",
+                "value": "0",
+                "ui": {
+                    "icon": "font-awesome/fa-compass",
+                    "label": {
+                        "en-US": "Azimuth"
+                    },
+                    "type": "spinner",
+                    "opts": {
+                        "min": -180,
+                        "max": 180
+                    }
+                }
+            },
+            {
+                "name": "modules power",
+                "type": "num",
+                "value": "1",
+                "ui": {
+                    "icon": "font-awesome/fa-power-off",
+                    "label": {
+                        "en-US": "Modules power (kWp)"
+                    },
+                    "type": "input",
+                    "opts": {
+                        "types": [
+                            "num"
+                        ]
+                    }
+                }
+            },
+            {
+                "name": "apikey",
+                "type": "cred",
+                "ui": {
+                    "icon": "font-awesome/fa-key",
+                    "label": {
+                        "en-US": "API key"
+                    },
+                    "type": "input",
+                    "opts": {
+                        "types": [
+                            "cred"
+                        ]
+                    }
+                }
+            },
+            {
+                "name": "type",
+                "type": "str",
+                "value": "estimate",
+                "ui": {
+                    "label": {
+                        "en-US": "Type"
+                    },
+                    "type": "select",
+                    "opts": {
+                        "opts": [
+                            {
+                                "l": {
+                                    "en-US": "Estimate"
+                                },
+                                "v": "estimate"
+                            },
+                            {
+                                "l": {
+                                    "en-US": "History"
+                                },
+                                "v": "history"
+                            },
+                            {
+                                "l": {
+                                    "en-US": "Clear sky"
+                                },
+                                "v": "clearsky"
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "name": "watt",
+                "type": "str",
+                "value": "watts",
+                "ui": {
+                    "icon": "font-awesome/fa-question-circle-o",
+                    "label": {
+                        "en-US": "Watt"
+                    },
+                    "type": "select",
+                    "opts": {
+                        "opts": [
+                            {
+                                "l": {
+                                    "en-US": "Watts (power) average for the period"
+                                },
+                                "v": "watts"
+                            },
+                            {
+                                "l": {
+                                    "en-US": "Watt hours (energy) for the period"
+                                },
+                                "v": "watthours/period"
+                            },
+                            {
+                                "l": {
+                                    "en-US": "Watt hours (energy) summarized over the day"
+                                },
+                                "v": "watthours"
+                            },
+                            {
+                                "l": {
+                                    "en-US": "Watt hours (energy) summarized for each day"
+                                },
+                                "v": "watthours/day"
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "name": "kwhoutput",
+                "type": "bool",
+                "value": "false",
+                "ui": {
+                    "label": {
+                        "en-US": "Output in kWh (in the graph)"
+                    },
+                    "type": "checkbox"
+                }
+            },
+            {
+                "name": "showtoday",
+                "type": "bool",
+                "value": "true",
+                "ui": {
+                    "label": {
+                        "en-US": "Show todays forecast"
+                    },
+                    "type": "checkbox"
+                }
+            },
+            {
+                "name": "daystoforecast",
+                "type": "str",
+                "value": "-1",
+                "ui": {
+                    "label": {
+                        "en-US": "Days to forecast"
+                    },
+                    "type": "select",
+                    "opts": {
+                        "opts": [
+                            {
+                                "l": {
+                                    "en-US": "Max"
+                                },
+                                "v": "-1"
+                            },
+                            {
+                                "l": {
+                                    "en-US": "0"
+                                },
+                                "v": "0"
+                            },
+                            {
+                                "l": {
+                                    "en-US": "1"
+                                },
+                                "v": "1"
+                            },
+                            {
+                                "l": {
+                                    "en-US": "2"
+                                },
+                                "v": "2"
+                            },
+                            {
+                                "l": {
+                                    "en-US": "3"
+                                },
+                                "v": "3"
+                            },
+                            {
+                                "l": {
+                                    "en-US": "4"
+                                },
+                                "v": "4"
+                            },
+                            {
+                                "l": {
+                                    "en-US": "5"
+                                },
+                                "v": "5"
+                            },
+                            {
+                                "l": {
+                                    "en-US": "6"
+                                },
+                                "v": "6"
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "name": "widengraph",
+                "type": "bool",
+                "value": "true",
+                "ui": {
+                    "label": {
+                        "en-US": "Widen graph"
+                    },
+                    "type": "checkbox"
+                }
+            },
+            {
+                "name": "showday",
+                "type": "bool",
+                "value": "false",
+                "ui": {
+                    "label": {
+                        "en-US": "Show day instead of date"
+                    },
+                    "type": "checkbox"
+                }
+            },
+            {
+                "name": "horizon",
+                "type": "str",
+                "value": "",
+                "ui": {
+                    "icon": "font-awesome/fa-tree",
+                    "label": {
+                        "en-US": "(optional) horizon"
+                    },
+                    "type": "input",
+                    "opts": {
+                        "types": [
+                            "str"
+                        ]
+                    }
+                }
+            }
+        ],
+        "meta": {
+            "module": "Solar Forecast",
+            "version": "0.0.14",
+            "author": "dfaber@victronenergy.com",
+            "desc": "Get solar forecasting per location",
+            "keywords": "solar,forecast,api",
+            "license": "GPL-3.0"
+        },
+        "color": "#FFCC66",
+        "inputLabels": [
+            "trigger"
+        ],
+        "outputLabels": [
+            "output",
+            "graph",
+            ""
+        ],
+        "icon": "font-awesome/fa-sun-o",
+        "status": {
+            "x": 680,
+            "y": 560,
+            "wires": [
+                {
+                    "id": "1bfc1cde3ee94e4b",
+                    "port": 0
+                },
+                {
+                    "id": "a798fbe66cf133d5",
+                    "port": 0
+                }
+            ]
+        }
+    },
+    {
+        "id": "75af2705.1ed408",
+        "type": "mqtt-broker",
+        "name": "emonpi",
+        "broker": "192.168.0.30",
+        "port": "1883",
+        "clientid": "nodered",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": "3",
+        "keepalive": "60",
+        "cleansession": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthPayload": "",
+        "birthMsg": {},
+        "closeTopic": "",
+        "closePayload": "",
+        "closeMsg": {},
+        "willTopic": "",
+        "willQos": "0",
+        "willPayload": "",
+        "willMsg": {},
+        "userProps": "",
+        "sessionExpiry": ""
+    },
+    {
+        "id": "fef89e18.a9216",
+        "type": "postgresDB",
+        "name": "house_dev",
+        "host": "pg.martinreed.co.uk",
+        "hostFieldType": "str",
+        "port": "5432",
+        "portFieldType": "num",
+        "database": "house_dev",
+        "databaseFieldType": "str",
+        "ssl": "0",
+        "sslFieldType": "bool",
+        "max": "10",
+        "maxFieldType": "num",
+        "min": "1",
+        "minFieldType": "num",
+        "idle": "1000",
+        "idleFieldType": "num",
+        "connectionTimeout": "10000",
+        "connectionTimeoutFieldType": "num",
+        "user": "house",
+        "userFieldType": "str",
+        "password": "house22",
+        "passwordFieldType": "str"
+    },
+    {
+        "id": "1e8c57f46a63ba96",
+        "type": "mqtt-broker",
+        "name": "mordor",
+        "broker": "192.168.0.2",
+        "port": "1883",
+        "clientid": "nodered",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": "4",
+        "keepalive": "60",
+        "cleansession": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthPayload": "",
+        "birthMsg": {},
+        "closeTopic": "",
+        "closeQos": "0",
+        "closePayload": "",
+        "closeMsg": {},
+        "willTopic": "",
+        "willQos": "0",
+        "willPayload": "",
+        "willMsg": {},
+        "userProps": "",
+        "sessionExpiry": ""
+    },
+    {
+        "id": "c706820c0d61f023",
+        "type": "http request",
+        "z": "93f485839dfa27a8",
+        "name": "",
+        "method": "GET",
+        "ret": "txt",
+        "paytoqs": "ignore",
+        "url": "",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "insecureHTTPParser": false,
+        "authType": "",
+        "senderr": false,
+        "headers": [],
+        "x": 390,
+        "y": 180,
+        "wires": [
+            [
+                "1b5ccaa05d54f7c3"
+            ]
+        ]
+    },
+    {
+        "id": "b9488734852cd0ca",
+        "type": "function",
+        "z": "93f485839dfa27a8",
+        "name": "create forecast.solar url",
+        "func": "msg.url = 'https://api.forecast.solar/';\n\nif (env.get('apikey')) {\n    msg.url += env.get('apikey') + '/';\n    }\n\nmsg.url += env.get('type') + '/';\n\nmsg.url += env.get('watt') + '/';\n\nmsg.url += env.get('latitude') + '/' +\n           env.get('longitude') + '/' +\n           env.get('declination') + '/' +\n           env.get('azimuth') + '/' +\n           env.get('modules power');\n\nif (env.get('horizon')) {\n    msg.url += '?horizon=' + env.get('horizon')\n}\nmsg.topic = 'solar forecast: '+(env.get('type') || '');\nmsg.topic += (' '+env.get('watt') || '');\nif (env.get('kwhoutput')) {\n    msg.topic += ' (kWh)';\n}\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 630,
+        "y": 100,
+        "wires": [
+            [
+                "975daf96f15cfb61"
+            ]
+        ]
+    },
+    {
+        "id": "1b5ccaa05d54f7c3",
+        "type": "json",
+        "z": "93f485839dfa27a8",
+        "name": "Convert to json",
+        "property": "payload",
+        "action": "",
+        "pretty": false,
+        "x": 680,
+        "y": 180,
+        "wires": [
+            [
+                "e718a22973cc2864"
+            ]
+        ]
+    },
+    {
+        "id": "559391d1288f762a",
+        "type": "function",
+        "z": "93f485839dfa27a8",
+        "name": "update ratelimit",
+        "func": "var remaining = msg.payload.message.ratelimit.remaining || 0;\nvar limit = msg.payload.message.ratelimit.limit;\n\nflow.set('forecast.solar.ratelimit.remaining', remaining)\nflow.set('forecast.solar.ratelimit.limit', limit)\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 520,
+        "y": 480,
+        "wires": [
+            [
+                "e56826252134b93a"
+            ]
+        ]
+    },
+    {
+        "id": "e718a22973cc2864",
+        "type": "link out",
+        "z": "93f485839dfa27a8",
+        "name": "link out 1",
+        "mode": "link",
+        "links": [
+            "3fa24f2d08195961",
+            "0a20e852662c8cec"
+        ],
+        "x": 815,
+        "y": 180,
+        "wires": []
+    },
+    {
+        "id": "3fa24f2d08195961",
+        "type": "link in",
+        "z": "93f485839dfa27a8",
+        "name": "link in 1",
+        "links": [
+            "e718a22973cc2864"
+        ],
+        "x": 385,
+        "y": 480,
+        "wires": [
+            [
+                "559391d1288f762a"
+            ]
+        ]
+    },
+    {
+        "id": "0a20e852662c8cec",
+        "type": "link in",
+        "z": "93f485839dfa27a8",
+        "name": "link in 2",
+        "links": [
+            "e718a22973cc2864"
+        ],
+        "x": 225,
+        "y": 260,
+        "wires": [
+            [
+                "fcc8d69a3ab88e6d"
+            ]
+        ]
+    },
+    {
+        "id": "4734b6f403e1f03e",
+        "type": "inject",
+        "z": "93f485839dfa27a8",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": true,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 530,
+        "y": 440,
+        "wires": [
+            [
+                "e56826252134b93a"
+            ]
+        ]
+    },
+    {
+        "id": "1bfc1cde3ee94e4b",
+        "type": "function",
+        "z": "93f485839dfa27a8",
+        "name": "update status",
+        "func": "var remaining = flow.get('forecast.solar.ratelimit.remaining') || -1;\nvar limit = flow.get('forecast.solar.ratelimit.limit') || -1\n\nvar text = remaining.toString() + '/' + limit.toString();\nvar fill = \"green\";\n\nif (remaining == 0) {\n    fill = \"red\";\n    text = \"Limit used\";\n}\n\nif (remaining > 0 && remaining < limit / 2) {\n    fill = \"yellow\"\n}\n\nif (remaining == -1 ) {\n    fill = \"blue\"\n    text = \"Limits unknown\"\n}\n\nmsg.payload = ({ fill: fill, text: text });\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 520,
+        "y": 580,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "a18e96179ec2d987",
+        "type": "function",
+        "z": "93f485839dfa27a8",
+        "name": "Create graph output",
+        "func": "var m = {};\nm.labels = [];\nm.data = [];\nm.series = [];\n\nfor (let j = 0; j <= msg.days; j++) {\n    m.data[j] = [];\n}\n\nif (msg.watt === 'watt_hours_day' || msg.watt === 'watthours/day') {\n    var i = 0;\n    if (msg.kwhoutput) {\n        m.series.push(\"kWh per day\");\n    } else {\n        m.series.push(\"Watt hours per day\");\n    }\n    for (const key in msg.payload.result) {\n        m.labels.push(key);\n        if (msg.kwhoutput) {\n            m.data[i] = +(Math.round(msg.payload.result[key]/100)*.1).toFixed(1);\n        } else {\n            m.data[i] = msg.payload.result[key];\n        }\n        i++;\n    }\n    m.data = [m.data];\n    return { payload: [m] };\n}\n\nfor (let i = 0; i <= 23; i++) {\n\n    m.labels.push(i.toString()+':00');\n    if (msg.resolution === 4) {\n       m.labels.push(i.toString()+':15');\n    }\n    if (msg.resolution === 2 || msg.resolution == 4) {\n       m.labels.push(i.toString()+':30');\n    }\n    if (msg.resolution === 4) {\n       m.labels.push(i.toString()+':45');\n    }\n\n    for (let j = 0; j <= msg.days; j++) {\n        m.data[j].push(0);\n        if (msg.resolution === 4) {\n           m.data[j].push(0)\n        }\n        if (msg.resolution === 2 || msg.resolution == 4) {\n           m.data[j].push(0)\n        }\n        if (msg.resolution === 4) {\n           m.data[j].push(0)\n        }\n\n    }\n}\n\nvar offset = 0;\nfor (const key in msg.payload.result) {\n    var d = new Date(key)\n    if (m.series.indexOf(d.toISOString().split('T')[0]) === -1) {\n        m.series.push(d.toISOString().split('T')[0])\n    }\n\n    var h = d.getHours();\n    var minutes = d.getMinutes();\n\n    if (minutes === 0 ) {\n        offset = 0;\n    } else {\n        offset++;\n    }\n\n    if (msg.kwhoutput) {\n        m.data[m.series.length - 1][h*msg.resolution+offset] = +(Math.round(msg.payload.result[key]/100)*.1).toFixed(1);\n    } else {\n        m.data[m.series.length - 1][h*msg.resolution+offset] = msg.payload.result[key];\n    }\n}\n\nif (msg.watt === 'watt_hours') {\n    for (const i in m.data) {\n        let x = m.data[i][0]\n        for (const d in m.data[i]) {\n            if ( x > m.data[i][d]) {\n                m.data[i][d] = x \n            }\n            x = m.data[i][d]\n        }\n    }\n}\n\nreturn { payload: [m] };\n",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 360,
+        "y": 340,
+        "wires": [
+            [
+                "5b0a430fb61e70e7"
+            ]
+        ]
+    },
+    {
+        "id": "975daf96f15cfb61",
+        "type": "link out",
+        "z": "93f485839dfa27a8",
+        "name": "link out 7",
+        "mode": "link",
+        "links": [
+            "14f2e68e572f4ef8"
+        ],
+        "x": 805,
+        "y": 100,
+        "wires": []
+    },
+    {
+        "id": "14f2e68e572f4ef8",
+        "type": "link in",
+        "z": "93f485839dfa27a8",
+        "name": "link in 18",
+        "links": [
+            "975daf96f15cfb61"
+        ],
+        "x": 245,
+        "y": 180,
+        "wires": [
+            [
+                "c706820c0d61f023"
+            ]
+        ]
+    },
+    {
+        "id": "c4307905e114824f",
+        "type": "catch",
+        "z": "93f485839dfa27a8",
+        "name": "",
+        "scope": null,
+        "uncaught": false,
+        "x": 260,
+        "y": 440,
+        "wires": [
+            [
+                "f427f19392c399ce"
+            ]
+        ]
+    },
+    {
+        "id": "e56826252134b93a",
+        "type": "link out",
+        "z": "93f485839dfa27a8",
+        "name": "link out 8",
+        "mode": "link",
+        "links": [
+            "dbaf8f5f5a920686"
+        ],
+        "x": 685,
+        "y": 480,
+        "wires": []
+    },
+    {
+        "id": "dbaf8f5f5a920686",
+        "type": "link in",
+        "z": "93f485839dfa27a8",
+        "name": "link in 19",
+        "links": [
+            "e56826252134b93a"
+        ],
+        "x": 385,
+        "y": 580,
+        "wires": [
+            [
+                "1bfc1cde3ee94e4b"
+            ]
+        ]
+    },
+    {
+        "id": "f427f19392c399ce",
+        "type": "link out",
+        "z": "93f485839dfa27a8",
+        "name": "link out 9",
+        "mode": "link",
+        "links": [
+            "2ded0c14a222b4d9",
+            "2f42837904c91d73"
+        ],
+        "x": 375,
+        "y": 440,
+        "wires": []
+    },
+    {
+        "id": "2ded0c14a222b4d9",
+        "type": "link in",
+        "z": "93f485839dfa27a8",
+        "name": "link in 20",
+        "links": [
+            "f427f19392c399ce"
+        ],
+        "x": 385,
+        "y": 540,
+        "wires": [
+            [
+                "a798fbe66cf133d5"
+            ]
+        ]
+    },
+    {
+        "id": "a798fbe66cf133d5",
+        "type": "function",
+        "z": "93f485839dfa27a8",
+        "name": "Set error status",
+        "func": "node.warn(msg.payload)\nmsg.payload = ({ fill: \"red\", text: msg.payload });\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 520,
+        "y": 540,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "2f42837904c91d73",
+        "type": "link in",
+        "z": "93f485839dfa27a8",
+        "name": "link in 21",
+        "links": [
+            "f427f19392c399ce"
+        ],
+        "x": 665,
+        "y": 280,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "fcc8d69a3ab88e6d",
+        "type": "function",
+        "z": "93f485839dfa27a8",
+        "name": "Processed info",
+        "func": "msg.resolution = 60;\nmsg.days = 1;\nmsg.type = env.get('type');\nmsg.watt = env.get('watt');\nmsg.kwhoutput = env.get('kwhoutput');\n\nvar key1 = Object.keys(msg.payload.result)[1];\nvar key2 = Object.keys(msg.payload.result)[2];\nvar key3 = Object.keys(msg.payload.result)[Object.keys(msg.payload.result).length-1];\n\nvar d1 = new Date(key1);\nvar d2 = new Date(key2); \nvar d3 = new Date(key3);\nmsg.resolution = 3600000 / (d2.getTime() - d1.getTime());\n\nmsg.days = Math.floor((d3.getTime() - d1.getTime()) / (1000 * 3600 * 24));\n\nif (msg.watt === 'watt_hours_day' || msg.watt === 'watthours/day') {\n    msg.resolution = null;\n}\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 360,
+        "y": 260,
+        "wires": [
+            [
+                "a18e96179ec2d987"
+            ]
+        ],
+        "info": "Function to process the result from forecast.solar to add\nextra information, which is handy for either graphing or\nto store in a database.\n\n\nThe extra values added:\n- `msg.resolution` - The number of measurements per hour. If\nno API key is used, this will be 1. Other values may be 2 or 4.\n- `msg.days` - The number of days in the forcast. If no API\n- key is used this will be 1. Other values may be 3 or 6."
+    },
+    {
+        "id": "5b0a430fb61e70e7",
+        "type": "function",
+        "z": "93f485839dfa27a8",
+        "name": "Filter graph",
+        "func": "\nif (env.get('showday')) {\n    const weekday = [\"Sunday\", \"Monday\", \"Tuesday\", \"Wednesday\", \"Thursday\", \"Friday\", \"Saturday\"];\n    msg.payload[0].labels.forEach(function (/** @type {string | number | Date} */ date, /** @type {string | number} */ index, /** @type {{ [x: string]: string; }} */ array) {\n        const d = new Date(date)\n        if (!isNaN(d)) {\n            array[index] = weekday[d.getDay()]\n        }\n    })\n    msg.payload[0].series.forEach(function (/** @type {string | number | Date} */ date, /** @type {string | number} */ index, /** @type {{ [x: string]: string; }} */ array) {\n        const d = new Date(date)\n        if (!isNaN(d)) {\n            array[index] = weekday[d.getDay()]\n        }\n    })\n}\n\nif (env.get('watt') === 'watt_hours_day' || env.get('watt') === 'watthours/day') {\n    if (!env.get('showtoday')) {\n        msg.payload[0].data[0].shift();\n        msg.payload[0].labels.shift();\n    }\n    return msg;\n}\n\nif (!env.get('showtoday')) {\n    msg.payload[0].data.shift();\n    msg.payload[0].series.shift();\n}\n\nvar forecasted = msg.payload[0].series.length;\n\nif ((Number(env.get('daystoforecast')) > -1) && (Number(env.get('daystoforecast')) < forecasted)) {\n    for (let i = 1; i <= (forecasted - Number(env.get('daystoforecast'))); i++ ) {\n        msg.payload[0].data.pop();\n        msg.payload[0].series.pop();\n    }\n}\n\nif (env.get('widengraph')) {\n    var c = msg.payload[0].labels.length;\n    var x = 0;\n    for (let i = 0; i < c; i++) {\n        var remove = true;\n        for (let d = 0; d < msg.payload[0].data.length; d++) {\n            if (msg.payload[0].data[d][x] > 0) {\n                remove = false;\n            }\n        }\n        if (remove) {\n            msg.payload[0].labels.splice(x, 1);\n            for (let d = 0; d < msg.payload[0].data.length; d++) {\n                 msg.payload[0].data[d].splice(x, 1);\n            }\n            x--;\n        }\n        x++;\n    }\n    // Still the first and last datapoints should be zero, so\n    // add those again\n    msg.payload[0].labels.unshift('');\n    msg.payload[0].labels.push('');\n    for (let d = 0; d < msg.payload[0].data.length; d++) {\n         msg.payload[0].data[d].unshift(0);\n         msg.payload[0].data[d].push(0);\n    }   \n}\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 590,
+        "y": 340,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "c8dc6aa14b9f3e92",
+        "type": "delay",
+        "z": "93f485839dfa27a8",
+        "name": "1 msg/15 minutes",
+        "pauseType": "rate",
+        "timeout": "5",
+        "timeoutUnits": "seconds",
+        "rate": "1",
+        "nbRateUnits": "15",
+        "rateUnits": "minute",
+        "randomFirst": "1",
+        "randomLast": "5",
+        "randomUnits": "seconds",
+        "drop": false,
+        "allowrate": false,
+        "outputs": 1,
+        "x": 390,
+        "y": 100,
+        "wires": [
+            [
+                "b9488734852cd0ca"
+            ]
+        ]
+    },
+    {
+        "id": "fb0d2af8.cb24d8",
+        "type": "mqtt in",
+        "z": "bb7ae1c9.1e44b",
+        "name": "poolmovingaverage",
+        "topic": "house/temp/poolmovingaverage",
+        "qos": "2",
+        "datatype": "auto-detect",
+        "broker": "75af2705.1ed408",
+        "nl": false,
+        "rap": false,
+        "inputs": 0,
+        "x": 103,
+        "y": 34,
+        "wires": [
+            [
+                "9bcd579f.374478",
+                "4e697b46.de2094"
+            ]
+        ]
+    },
+    {
+        "id": "b8afa399.1d94b",
+        "type": "debug",
+        "z": "bb7ae1c9.1e44b",
+        "name": "",
+        "active": true,
+        "tosidebar": false,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1090,
+        "y": 680,
+        "wires": []
+    },
+    {
+        "id": "9bcd579f.374478",
+        "type": "trigger",
+        "z": "bb7ae1c9.1e44b",
+        "name": "watchdog poolmovingaverage",
+        "op1": "",
+        "op2": "",
+        "op1type": "nul",
+        "op2type": "pay",
+        "duration": "900",
+        "extend": true,
+        "units": "s",
+        "reset": "",
+        "outputs": 1,
+        "x": 171,
+        "y": 100,
+        "wires": [
+            [
+                "d1f346e2.f00ad8"
+            ]
+        ]
+    },
+    {
+        "id": "be69af14.b9a2d",
+        "type": "e-mail",
+        "z": "bb7ae1c9.1e44b",
+        "server": "vps4.granaryhosts.net",
+        "port": "587",
+        "secure": false,
+        "name": "martin@martinreed.co.uk",
+        "dname": "email martin",
+        "x": 1090,
+        "y": 560,
+        "wires": []
+    },
+    {
+        "id": "d1f346e2.f00ad8",
+        "type": "template",
+        "z": "bb7ae1c9.1e44b",
+        "name": "alert poolmovingaverage",
+        "field": "payload",
+        "fieldType": "msg",
+        "format": "handlebars",
+        "syntax": "mustache",
+        "template": "Pool moving average watchdog: {{payload}}",
+        "output": "str",
+        "x": 430,
+        "y": 100,
+        "wires": [
+            [
+                "adf73953.82da48"
+            ]
+        ]
+    },
+    {
+        "id": "adf73953.82da48",
+        "type": "template",
+        "z": "bb7ae1c9.1e44b",
+        "name": "set subject boiler alert",
+        "field": "topic",
+        "fieldType": "msg",
+        "format": "handlebars",
+        "syntax": "plain",
+        "template": "NodeRed Boiler Alert",
+        "output": "str",
+        "x": 840,
+        "y": 340,
+        "wires": [
+            [
+                "be69af14.b9a2d",
+                "b8afa399.1d94b",
+                "acfbc9c1.4ed0b8"
+            ]
+        ]
+    },
+    {
+        "id": "5077f443.853fac",
+        "type": "inject",
+        "z": "bb7ae1c9.1e44b",
+        "name": "Timer",
+        "repeat": "43200",
+        "crontab": "",
+        "once": false,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 120,
+        "y": 556,
+        "wires": [
+            [
+                "daa15285.364c2",
+                "79b24e45.5d0a"
+            ]
+        ]
+    },
+    {
+        "id": "daa15285.364c2",
+        "type": "http request",
+        "z": "bb7ae1c9.1e44b",
+        "name": "PC consumption since last empty",
+        "method": "GET",
+        "ret": "txt",
+        "url": "http://192.168.0.37:8080/user/var/40/10021/0/0/12013",
+        "tls": "",
+        "x": 370,
+        "y": 556,
+        "wires": [
+            [
+                "a9f687f1.3ea6e8"
+            ]
+        ]
+    },
+    {
+        "id": "a9f687f1.3ea6e8",
+        "type": "xml",
+        "z": "bb7ae1c9.1e44b",
+        "name": "",
+        "attr": "",
+        "chr": "",
+        "x": 601,
+        "y": 556,
+        "wires": [
+            [
+                "8432aeaa.5f7dc"
+            ]
+        ]
+    },
+    {
+        "id": "8432aeaa.5f7dc",
+        "type": "function",
+        "z": "bb7ae1c9.1e44b",
+        "name": "cg-to-kg",
+        "func": "value = msg.payload['eta']['value'][0]['_'];\nmsg.payload = Math.round(value / 10.0);\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 131,
+        "y": 644,
+        "wires": [
+            [
+                "b5184a44.33bc88"
+            ]
+        ]
+    },
+    {
+        "id": "b5184a44.33bc88",
+        "type": "switch",
+        "z": "bb7ae1c9.1e44b",
+        "name": "check for ash consumption 800",
+        "property": "payload",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "gt",
+                "v": "800",
+                "vt": "num"
+            }
+        ],
+        "checkall": "true",
+        "repair": false,
+        "outputs": 1,
+        "x": 390,
+        "y": 643,
+        "wires": [
+            [
+                "fbd43016.6b294"
+            ]
+        ]
+    },
+    {
+        "id": "fbd43016.6b294",
+        "type": "template",
+        "z": "bb7ae1c9.1e44b",
+        "name": "alert ash consumption",
+        "field": "payload",
+        "fieldType": "msg",
+        "format": "handlebars",
+        "syntax": "mustache",
+        "template": "Empty ash bin for PC.",
+        "output": "str",
+        "x": 638,
+        "y": 643,
+        "wires": [
+            [
+                "adf73953.82da48"
+            ]
+        ]
+    },
+    {
+        "id": "bab1bd52.2887c",
+        "type": "template",
+        "z": "bb7ae1c9.1e44b",
+        "name": "alert lowtemp",
+        "field": "payload",
+        "fieldType": "msg",
+        "format": "handlebars",
+        "syntax": "mustache",
+        "template": "Pool temperature low: {{payload}}",
+        "output": "str",
+        "x": 539,
+        "y": 155,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "4e697b46.de2094",
+        "type": "function",
+        "z": "bb7ae1c9.1e44b",
+        "name": "filter 10:00 to 22:00",
+        "func": "let now = new Date();\nif (now.getHours() >= 10 && now.getHours() <= 22) {\n    return msg;\n}\n",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 134,
+        "y": 156,
+        "wires": [
+            [
+                "b268b243.f26e"
+            ]
+        ]
+    },
+    {
+        "id": "93c6f4ad.d0f2f8",
+        "type": "mqtt in",
+        "z": "bb7ae1c9.1e44b",
+        "name": "poolwater/setpoint/min",
+        "topic": "house/temp/poolwater/setpoint/min",
+        "qos": "2",
+        "broker": "75af2705.1ed408",
+        "inputs": 0,
+        "x": 115,
+        "y": 226,
+        "wires": [
+            [
+                "b2fbd17e.e4aa"
+            ]
+        ]
+    },
+    {
+        "id": "b2fbd17e.e4aa",
+        "type": "change",
+        "z": "bb7ae1c9.1e44b",
+        "name": "save global.pool_setpoint_min",
+        "rules": [
+            {
+                "t": "set",
+                "p": "pool_setpoint_min",
+                "pt": "global",
+                "to": "payload",
+                "tot": "msg"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 387,
+        "y": 226,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "b268b243.f26e",
+        "type": "function",
+        "z": "bb7ae1c9.1e44b",
+        "name": "test pool temp too low",
+        "func": "let poolTemp = parseFloat(msg.payload);\nlet poolSetpointMin = parseFloat(global.get('pool_setpoint_min'));\n//node.warn('test: ' + poolTemp + ', ' + poolSetpointMin);\nif (poolTemp < (poolSetpointMin -3.0)) {\n//if (poolTemp < 32.3) {\n    return msg;\n}\n",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 348,
+        "y": 156,
+        "wires": [
+            [
+                "bab1bd52.2887c"
+            ]
+        ]
+    },
+    {
+        "id": "acfbc9c1.4ed0b8",
+        "type": "pushover",
+        "z": "bb7ae1c9.1e44b",
+        "name": "Pushover iphone",
+        "device": "iphone",
+        "title": "iphone",
+        "priority": 0,
+        "sound": "spacealarm",
+        "url": "",
+        "url_title": "",
+        "x": 1110,
+        "y": 620,
+        "wires": []
+    },
+    {
+        "id": "79b24e45.5d0a",
+        "type": "http request",
+        "z": "bb7ae1c9.1e44b",
+        "name": "PEK consumption since last empty",
+        "method": "GET",
+        "ret": "txt",
+        "url": "http://192.168.0.36:8080/user/var/40/10261/0/0/12013",
+        "tls": "",
+        "x": 379,
+        "y": 704,
+        "wires": [
+            [
+                "50c3de43.bcea7"
+            ]
+        ]
+    },
+    {
+        "id": "b371581.a20c1a8",
+        "type": "function",
+        "z": "bb7ae1c9.1e44b",
+        "name": "cg-to-kg",
+        "func": "value = msg.payload['eta']['value'][0]['_'];\nmsg.payload = Math.round(value / 10.0);\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 133,
+        "y": 770,
+        "wires": [
+            [
+                "ee1c880.9cdd378"
+            ]
+        ]
+    },
+    {
+        "id": "ee1c880.9cdd378",
+        "type": "switch",
+        "z": "bb7ae1c9.1e44b",
+        "name": "check for ash consumption 900",
+        "property": "payload",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "gt",
+                "v": "900",
+                "vt": "num"
+            }
+        ],
+        "checkall": "true",
+        "repair": false,
+        "outputs": 1,
+        "x": 396,
+        "y": 769,
+        "wires": [
+            [
+                "7b9d6ef7.99f8f"
+            ]
+        ]
+    },
+    {
+        "id": "7b9d6ef7.99f8f",
+        "type": "template",
+        "z": "bb7ae1c9.1e44b",
+        "name": "alert ash consumption",
+        "field": "payload",
+        "fieldType": "msg",
+        "format": "handlebars",
+        "syntax": "mustache",
+        "template": "Empty ash bin for PEK.",
+        "output": "str",
+        "x": 644,
+        "y": 769,
+        "wires": [
+            [
+                "adf73953.82da48"
+            ]
+        ]
+    },
+    {
+        "id": "50c3de43.bcea7",
+        "type": "xml",
+        "z": "bb7ae1c9.1e44b",
+        "name": "",
+        "attr": "",
+        "chr": "",
+        "x": 603,
+        "y": 704,
+        "wires": [
+            [
+                "b371581.a20c1a8"
+            ]
+        ]
+    },
+    {
+        "id": "64b8c2b7.19dc9c",
+        "type": "http request",
+        "z": "bb7ae1c9.1e44b",
+        "name": "SolarEdge overview",
+        "method": "GET",
+        "ret": "obj",
+        "url": "https://monitoringapi.solaredge.com/site/180180/overview?api_key=3FYLV0MS1MS189IUH4BJ2VAVNAYFX7GA",
+        "tls": "",
+        "x": 309,
+        "y": 1019,
+        "wires": [
+            [
+                "bafba355.aaaf4"
+            ]
+        ]
+    },
+    {
+        "id": "bafba355.aaaf4",
+        "type": "function",
+        "z": "bb7ae1c9.1e44b",
+        "name": "Extract power",
+        "func": "var power = msg.payload.overview.currentPower.power;\nvar powerMsg = { payload: power }\nreturn powerMsg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 537,
+        "y": 1019,
+        "wires": [
+            [
+                "30c8843f.755a3c",
+                "c6cefb36.e85cc8"
+            ]
+        ]
+    },
+    {
+        "id": "30c8843f.755a3c",
+        "type": "mqtt out",
+        "z": "bb7ae1c9.1e44b",
+        "name": "house-power-solaredge-power",
+        "topic": "house/power/solaredge/power",
+        "qos": "2",
+        "retain": "",
+        "broker": "75af2705.1ed408",
+        "x": 797,
+        "y": 1019,
+        "wires": []
+    },
+    {
+        "id": "a7e617b1.5093d8",
+        "type": "inject",
+        "z": "bb7ae1c9.1e44b",
+        "name": "5mins",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "300",
+        "crontab": "",
+        "once": false,
+        "onceDelay": "",
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 109,
+        "y": 1019,
+        "wires": [
+            [
+                "64b8c2b7.19dc9c"
+            ]
+        ]
+    },
+    {
+        "id": "c6cefb36.e85cc8",
+        "type": "mqtt out",
+        "z": "bb7ae1c9.1e44b",
+        "name": "emon-solaredge-power",
+        "topic": "emon/solaredge/power",
+        "qos": "",
+        "retain": "",
+        "broker": "75af2705.1ed408",
+        "x": 778,
+        "y": 1071,
+        "wires": []
+    },
+    {
+        "id": "f04d366bcc4ad672",
+        "type": "nut-ups",
+        "z": "bb7ae1c9.1e44b",
+        "name": "apc1@rohan",
+        "ups": "apc1@192.168.0.8",
+        "x": 130,
+        "y": 1240,
+        "wires": [
+            [
+                "588da88a0c9118c2"
+            ]
+        ]
+    },
+    {
+        "id": "25d83c952df571bb",
+        "type": "inject",
+        "z": "bb7ae1c9.1e44b",
+        "d": true,
+        "name": "30s",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "30",
+        "crontab": "",
+        "once": true,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 90,
+        "y": 1180,
+        "wires": [
+            [
+                "f04d366bcc4ad672",
+                "3616f3e9ddfccb29"
+            ]
+        ]
+    },
+    {
+        "id": "d444878ad484be2b",
+        "type": "function",
+        "z": "bb7ae1c9.1e44b",
+        "name": "test overload",
+        "func": "let load = parseFloat(msg.payload);\nif (load > 60.0) {\n    var loadMsg = { topic: \"house/ups/\" + msg.payload.name + \"/load\", payload: msg.payload }\n    return loadMsg;\n}\n",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 490,
+        "y": 1480,
+        "wires": [
+            [
+                "56b993b7e645ece6"
+            ]
+        ]
+    },
+    {
+        "id": "8c8a83bc2d9da779",
+        "type": "mqtt out",
+        "z": "bb7ae1c9.1e44b",
+        "name": "publish to emonpi",
+        "topic": "",
+        "qos": "2",
+        "retain": "",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "75af2705.1ed408",
+        "x": 510,
+        "y": 1540,
+        "wires": []
+    },
+    {
+        "id": "15ac5d8bd5455660",
+        "type": "function",
+        "z": "bb7ae1c9.1e44b",
+        "name": "house/ups/apcX/load",
+        "func": "var loadMsg = { topic: \"house/ups/\" + msg.payload.name + \"/load\", payload: msg.payload.ups.load.value }\nreturn loadMsg;\n",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 280,
+        "y": 1480,
+        "wires": [
+            [
+                "d444878ad484be2b",
+                "8c8a83bc2d9da779"
+            ]
+        ]
+    },
+    {
+        "id": "56b993b7e645ece6",
+        "type": "template",
+        "z": "bb7ae1c9.1e44b",
+        "name": "alert UPS overload",
+        "field": "payload",
+        "fieldType": "msg",
+        "format": "handlebars",
+        "syntax": "mustache",
+        "template": "apc1 UPS overload: {{payload}}",
+        "output": "str",
+        "x": 690,
+        "y": 1480,
+        "wires": [
+            [
+                "12897aac9f69ed52"
+            ]
+        ]
+    },
+    {
+        "id": "02ed012195471e6b",
+        "type": "function",
+        "z": "bb7ae1c9.1e44b",
+        "name": "house/ups/apcX/status",
+        "func": "var loadMsg = { topic: \"house/ups/\" + msg.payload.name + \"/status\", payload: msg.payload.ups.status.value }\nreturn loadMsg;\n",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 280,
+        "y": 1540,
+        "wires": [
+            [
+                "8c8a83bc2d9da779"
+            ]
+        ]
+    },
+    {
+        "id": "3616f3e9ddfccb29",
+        "type": "nut-ups",
+        "z": "bb7ae1c9.1e44b",
+        "name": "apc2@rohan",
+        "ups": "apc2@192.168.0.8",
+        "x": 130,
+        "y": 1300,
+        "wires": [
+            [
+                "f96df791fca15061"
+            ]
+        ]
+    },
+    {
+        "id": "df6410216b22f9cb",
+        "type": "change",
+        "z": "bb7ae1c9.1e44b",
+        "name": "",
+        "rules": [
+            {
+                "t": "set",
+                "p": "payload.name",
+                "pt": "msg",
+                "to": "apc2",
+                "tot": "str"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 580,
+        "y": 1300,
+        "wires": [
+            [
+                "15ac5d8bd5455660",
+                "02ed012195471e6b"
+            ]
+        ]
+    },
+    {
+        "id": "1de1f44ae9641ea7",
+        "type": "change",
+        "z": "bb7ae1c9.1e44b",
+        "name": "",
+        "rules": [
+            {
+                "t": "set",
+                "p": "payload.name",
+                "pt": "msg",
+                "to": "apc1",
+                "tot": "str"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 580,
+        "y": 1240,
+        "wires": [
+            [
+                "15ac5d8bd5455660",
+                "02ed012195471e6b"
+            ]
+        ]
+    },
+    {
+        "id": "12897aac9f69ed52",
+        "type": "template",
+        "z": "bb7ae1c9.1e44b",
+        "name": "set subject UPS alert",
+        "field": "topic",
+        "fieldType": "msg",
+        "format": "handlebars",
+        "syntax": "plain",
+        "template": "NodeRed UPS Alert",
+        "output": "str",
+        "x": 840,
+        "y": 1420,
+        "wires": [
+            [
+                "be69af14.b9a2d",
+                "acfbc9c1.4ed0b8",
+                "b8afa399.1d94b"
+            ]
+        ]
+    },
+    {
+        "id": "588da88a0c9118c2",
+        "type": "switch",
+        "z": "bb7ae1c9.1e44b",
+        "name": "Filter undefined load",
+        "property": "payload.ups.load",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "nnull"
+            }
+        ],
+        "checkall": "false",
+        "repair": false,
+        "outputs": 1,
+        "x": 340,
+        "y": 1240,
+        "wires": [
+            [
+                "1de1f44ae9641ea7"
+            ]
+        ]
+    },
+    {
+        "id": "f96df791fca15061",
+        "type": "switch",
+        "z": "bb7ae1c9.1e44b",
+        "name": "Filter undefined load",
+        "property": "payload.ups.load",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "nnull"
+            }
+        ],
+        "checkall": "false",
+        "repair": false,
+        "outputs": 1,
+        "x": 340,
+        "y": 1300,
+        "wires": [
+            [
+                "df6410216b22f9cb"
+            ]
+        ]
+    },
+    {
+        "id": "9575cbd9d2a783d3",
+        "type": "mqtt in",
+        "z": "bb7ae1c9.1e44b",
+        "name": "battery/poolwater",
+        "topic": "house/battery/poolwater",
+        "qos": "2",
+        "datatype": "auto-detect",
+        "broker": "75af2705.1ed408",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 100,
+        "y": 380,
+        "wires": [
+            [
+                "e9fef505cf1a2be2",
+                "b8afa399.1d94b"
+            ]
+        ]
+    },
+    {
+        "id": "e9fef505cf1a2be2",
+        "type": "function",
+        "z": "bb7ae1c9.1e44b",
+        "name": "test pool battery too low",
+        "func": "let poolBattery = parseFloat(msg.payload);\nif (poolBattery < 2.0) {\n    return msg;\n}\n",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 330,
+        "y": 380,
+        "wires": [
+            [
+                "3933f8367d400418"
+            ]
+        ]
+    },
+    {
+        "id": "3933f8367d400418",
+        "type": "template",
+        "z": "bb7ae1c9.1e44b",
+        "name": "set subject battery alert",
+        "field": "topic",
+        "fieldType": "msg",
+        "format": "handlebars",
+        "syntax": "plain",
+        "template": "NodeRed Battery Alert - poolwater",
+        "output": "str",
+        "x": 570,
+        "y": 380,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "485b32c086653e7b",
+        "type": "mqtt in",
+        "z": "bb7ae1c9.1e44b",
+        "name": "battery/poolair",
+        "topic": "house/battery/poolair",
+        "qos": "2",
+        "datatype": "auto-detect",
+        "broker": "75af2705.1ed408",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 90,
+        "y": 440,
+        "wires": [
+            [
+                "b8afa399.1d94b",
+                "d2110ab77e3bd488"
+            ]
+        ]
+    },
+    {
+        "id": "1b43980afe8885af",
+        "type": "inject",
+        "z": "bb7ae1c9.1e44b",
+        "name": "15mins",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "900",
+        "crontab": "",
+        "once": true,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 100,
+        "y": 1620,
+        "wires": [
+            [
+                "93aff6cf625c0f53"
+            ]
+        ]
+    },
+    {
+        "id": "93aff6cf625c0f53",
+        "type": "http request",
+        "z": "bb7ae1c9.1e44b",
+        "name": "get weather",
+        "method": "GET",
+        "ret": "obj",
+        "paytoqs": "ignore",
+        "url": "http://api.open-meteo.com/v1/forecast?latitude=50.36&longitude=-4.36&current=temperature_2m,wind_speed_10m",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "insecureHTTPParser": false,
+        "authType": "",
+        "senderr": false,
+        "headers": [],
+        "x": 130,
+        "y": 1680,
+        "wires": [
+            [
+                "407447ed5d48018b",
+                "7bd21631c83d5826"
+            ]
+        ]
+    },
+    {
+        "id": "407447ed5d48018b",
+        "type": "function",
+        "z": "bb7ae1c9.1e44b",
+        "name": "temperature_2m",
+        "func": "var temperatureMsg = { topic: \"house/weather/temperature_2m\", payload: msg.payload.current.temperature_2m };\nreturn temperatureMsg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 320,
+        "y": 1680,
+        "wires": [
+            [
+                "8c8a83bc2d9da779"
+            ]
+        ]
+    },
+    {
+        "id": "7bd21631c83d5826",
+        "type": "function",
+        "z": "bb7ae1c9.1e44b",
+        "name": "wind_speed_10m",
+        "func": "var windMsg = { topic: \"house/weather/wind_speed_10m\", payload: msg.payload.current.wind_speed_10m };\nreturn windMsg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 330,
+        "y": 1720,
+        "wires": [
+            [
+                "8c8a83bc2d9da779"
+            ]
+        ]
+    },
+    {
+        "id": "d2110ab77e3bd488",
+        "type": "function",
+        "z": "bb7ae1c9.1e44b",
+        "name": "test pool battery too low",
+        "func": "let poolBattery = parseFloat(msg.payload);\nif (poolBattery < 2.0) {\n    return msg;\n}\n",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 330,
+        "y": 440,
+        "wires": [
+            [
+                "1d1036e7805b2e4b"
+            ]
+        ]
+    },
+    {
+        "id": "1d1036e7805b2e4b",
+        "type": "template",
+        "z": "bb7ae1c9.1e44b",
+        "name": "set subject battery alert",
+        "field": "topic",
+        "fieldType": "msg",
+        "format": "handlebars",
+        "syntax": "plain",
+        "template": "NodeRed Battery Alert - poolair",
+        "output": "str",
+        "x": 570,
+        "y": 440,
+        "wires": [
+            [
+                "be69af14.b9a2d"
+            ]
+        ]
+    },
+    {
+        "id": "edcb13b10c475313",
+        "type": "mqtt in",
+        "z": "bb7ae1c9.1e44b",
+        "name": "esp/pool/temp1",
+        "topic": "esp/pool/temp1",
+        "qos": "2",
+        "datatype": "auto-detect",
+        "broker": "1e8c57f46a63ba96",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 100,
+        "y": 860,
+        "wires": [
+            [
+                "e6a018bb3e79f66c",
+                "577e1769811162c5"
+            ]
+        ]
+    },
+    {
+        "id": "e6a018bb3e79f66c",
+        "type": "mqtt out",
+        "z": "bb7ae1c9.1e44b",
+        "name": "house/temp/poolwater",
+        "topic": "house/temp/poolwater",
+        "qos": "",
+        "retain": "false",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "75af2705.1ed408",
+        "x": 360,
+        "y": 860,
+        "wires": []
+    },
+    {
+        "id": "577e1769811162c5",
+        "type": "mqtt out",
+        "z": "bb7ae1c9.1e44b",
+        "name": "emon/pool/poolwater",
+        "topic": "emon/pool/poolwater",
+        "qos": "",
+        "retain": "false",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "75af2705.1ed408",
+        "x": 360,
+        "y": 900,
+        "wires": []
+    },
+    {
+        "id": "b137a6cc387bf42c",
+        "type": "mqtt in",
+        "z": "bb7ae1c9.1e44b",
+        "name": "house/immersion/temperature",
+        "topic": "house/immersion/temperature",
+        "qos": "2",
+        "datatype": "auto-detect",
+        "broker": "1e8c57f46a63ba96",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 160,
+        "y": 1780,
+        "wires": [
+            [
+                "3014057b0967581f",
+                "19c2e7fa40c3f028",
+                "d40cd2c1acfa9aae"
+            ]
+        ]
+    },
+    {
+        "id": "3014057b0967581f",
+        "type": "trigger",
+        "z": "bb7ae1c9.1e44b",
+        "name": "watchdog immersiontemperature",
+        "op1": "",
+        "op2": "",
+        "op1type": "nul",
+        "op2type": "pay",
+        "duration": "900",
+        "extend": true,
+        "overrideDelay": false,
+        "units": "s",
+        "reset": "",
+        "bytopic": "all",
+        "topic": "topic",
+        "outputs": 1,
+        "x": 460,
+        "y": 1780,
+        "wires": [
+            [
+                "ddd7db997f89b7e1"
+            ]
+        ]
+    },
+    {
+        "id": "ddd7db997f89b7e1",
+        "type": "template",
+        "z": "bb7ae1c9.1e44b",
+        "name": "alert immersiontemperature",
+        "field": "payload",
+        "fieldType": "msg",
+        "format": "handlebars",
+        "syntax": "mustache",
+        "template": "Immersion temperature watchdog: {{payload}}",
+        "output": "str",
+        "x": 760,
+        "y": 1780,
+        "wires": [
+            [
+                "dbaa5e3b5b7d39a7"
+            ]
+        ]
+    },
+    {
+        "id": "dbaa5e3b5b7d39a7",
+        "type": "template",
+        "z": "bb7ae1c9.1e44b",
+        "name": "set subject immersion alert",
+        "field": "topic",
+        "fieldType": "msg",
+        "format": "handlebars",
+        "syntax": "plain",
+        "template": "NodeRed Immersion Alert",
+        "output": "str",
+        "x": 1020,
+        "y": 1780,
+        "wires": [
+            [
+                "be69af14.b9a2d",
+                "acfbc9c1.4ed0b8"
+            ]
+        ]
+    },
+    {
+        "id": "19c2e7fa40c3f028",
+        "type": "mqtt out",
+        "z": "bb7ae1c9.1e44b",
+        "name": "emon/immersion/temperature",
+        "topic": "emon/immersion/temperature",
+        "qos": "",
+        "retain": "false",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "75af2705.1ed408",
+        "x": 440,
+        "y": 1840,
+        "wires": []
+    },
+    {
+        "id": "16d8184490a9b77d",
+        "type": "mqtt in",
+        "z": "bb7ae1c9.1e44b",
+        "name": "house/immersion/setpoint",
+        "topic": "house/immersion/setpoint",
+        "qos": "2",
+        "datatype": "auto-detect",
+        "broker": "1e8c57f46a63ba96",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 150,
+        "y": 1900,
+        "wires": [
+            [
+                "1bfde446625c72d7"
+            ]
+        ]
+    },
+    {
+        "id": "1bfde446625c72d7",
+        "type": "mqtt out",
+        "z": "bb7ae1c9.1e44b",
+        "name": "emon/immersion/setpoint",
+        "topic": "emon/immersion/setpoint",
+        "qos": "",
+        "retain": "false",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "75af2705.1ed408",
+        "x": 430,
+        "y": 1900,
+        "wires": []
+    },
+    {
+        "id": "a818e8414f6c3c76",
+        "type": "mqtt in",
+        "z": "bb7ae1c9.1e44b",
+        "name": "house/immersion/heating",
+        "topic": "house/immersion/heating",
+        "qos": "2",
+        "datatype": "auto-detect",
+        "broker": "1e8c57f46a63ba96",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 150,
+        "y": 1960,
+        "wires": [
+            [
+                "90908779167b0991"
+            ]
+        ]
+    },
+    {
+        "id": "90908779167b0991",
+        "type": "mqtt out",
+        "z": "bb7ae1c9.1e44b",
+        "name": "emon/immersion/heating",
+        "topic": "emon/immersion/heating",
+        "qos": "",
+        "retain": "false",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "75af2705.1ed408",
+        "x": 430,
+        "y": 1960,
+        "wires": []
+    },
+    {
+        "id": "f9dac4129c4565d9",
+        "type": "mqtt in",
+        "z": "bb7ae1c9.1e44b",
+        "name": "house/immersion/mode",
+        "topic": "house/immersion/mode",
+        "qos": "2",
+        "datatype": "auto-detect",
+        "broker": "1e8c57f46a63ba96",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 140,
+        "y": 2020,
+        "wires": [
+            [
+                "579d8c8a2bd6aaaa"
+            ]
+        ]
+    },
+    {
+        "id": "579d8c8a2bd6aaaa",
+        "type": "mqtt out",
+        "z": "bb7ae1c9.1e44b",
+        "name": "emon/immersion/mode",
+        "topic": "emon/immersion/mode",
+        "qos": "",
+        "retain": "false",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "75af2705.1ed408",
+        "x": 420,
+        "y": 2020,
+        "wires": []
+    },
+    {
+        "id": "d40cd2c1acfa9aae",
+        "type": "debug",
+        "z": "bb7ae1c9.1e44b",
+        "name": "debug 3",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 580,
+        "y": 1720,
+        "wires": []
+    },
+    {
+        "id": "41cfe20a3229dd71",
+        "type": "mqtt in",
+        "z": "410497889f014e5e",
+        "name": "house/powerwall",
+        "topic": "house/powerwall/#",
+        "qos": "0",
+        "datatype": "json",
+        "broker": "1e8c57f46a63ba96",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 100,
+        "y": 40,
+        "wires": [
+            [
+                "d93ac42e1012030c",
+                "945e5f2d85b4177e"
+            ]
+        ]
+    },
+    {
+        "id": "ea96da3c7e1b01b1",
+        "type": "debug",
+        "z": "410497889f014e5e",
+        "name": "debug 2",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 680,
+        "y": 240,
+        "wires": []
+    },
+    {
+        "id": "d93ac42e1012030c",
+        "type": "switch",
+        "z": "410497889f014e5e",
+        "name": "Select aggregates messages",
+        "property": "payload.fields",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "hask",
+                "v": "battery_energy_exported",
+                "vt": "str"
+            }
+        ],
+        "checkall": "true",
+        "repair": false,
+        "outputs": 1,
+        "x": 360,
+        "y": 40,
+        "wires": [
+            [
+                "fbb75fdea830a8fa",
+                "108e897545bfc737",
+                "51f2f79af69bc33b",
+                "f58cbe3823c83571"
+            ]
+        ]
+    },
+    {
+        "id": "fbb75fdea830a8fa",
+        "type": "change",
+        "z": "410497889f014e5e",
+        "name": "site_instant_power",
+        "rules": [
+            {
+                "t": "set",
+                "p": "payload",
+                "pt": "msg",
+                "to": "payload.fields.site_instant_power",
+                "tot": "msg"
+            },
+            {
+                "t": "set",
+                "p": "topic",
+                "pt": "msg",
+                "to": "emon/powerwall/sitepower",
+                "tot": "str"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 170,
+        "y": 140,
+        "wires": [
+            [
+                "389269335e1ad0de"
+            ]
+        ]
+    },
+    {
+        "id": "389269335e1ad0de",
+        "type": "mqtt out",
+        "z": "410497889f014e5e",
+        "name": "emonpi",
+        "topic": "",
+        "qos": "",
+        "retain": "",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "75af2705.1ed408",
+        "x": 540,
+        "y": 140,
+        "wires": []
+    },
+    {
+        "id": "108e897545bfc737",
+        "type": "change",
+        "z": "410497889f014e5e",
+        "name": "battery_instant_power",
+        "rules": [
+            {
+                "t": "set",
+                "p": "payload",
+                "pt": "msg",
+                "to": "payload.fields.battery_instant_power",
+                "tot": "msg"
+            },
+            {
+                "t": "set",
+                "p": "topic",
+                "pt": "msg",
+                "to": "emon/powerwall/batterypower",
+                "tot": "str"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 180,
+        "y": 180,
+        "wires": [
+            [
+                "389269335e1ad0de"
+            ]
+        ]
+    },
+    {
+        "id": "51f2f79af69bc33b",
+        "type": "change",
+        "z": "410497889f014e5e",
+        "name": "solar_instant_power",
+        "rules": [
+            {
+                "t": "set",
+                "p": "payload",
+                "pt": "msg",
+                "to": "payload.fields.solar_instant_power",
+                "tot": "msg"
+            },
+            {
+                "t": "set",
+                "p": "topic",
+                "pt": "msg",
+                "to": "emon/powerwall/solarpower",
+                "tot": "str"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 180,
+        "y": 220,
+        "wires": [
+            [
+                "389269335e1ad0de"
+            ]
+        ]
+    },
+    {
+        "id": "945e5f2d85b4177e",
+        "type": "switch",
+        "z": "410497889f014e5e",
+        "name": "Select soe messages",
+        "property": "payload.fields",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "hask",
+                "v": "percentage",
+                "vt": "str"
+            }
+        ],
+        "checkall": "true",
+        "repair": false,
+        "outputs": 1,
+        "x": 340,
+        "y": 340,
+        "wires": [
+            [
+                "a251377c9b3ec806"
+            ]
+        ]
+    },
+    {
+        "id": "a251377c9b3ec806",
+        "type": "http request",
+        "z": "410497889f014e5e",
+        "name": "get real battery capacity",
+        "method": "GET",
+        "ret": "txt",
+        "paytoqs": "ignore",
+        "url": "http://house:8675/api/system_status/soe",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "insecureHTTPParser": false,
+        "authType": "",
+        "senderr": false,
+        "headers": [],
+        "x": 190,
+        "y": 400,
+        "wires": [
+            [
+                "2a9d525aa2196ace"
+            ]
+        ]
+    },
+    {
+        "id": "0fff298d8313a28d",
+        "type": "change",
+        "z": "410497889f014e5e",
+        "name": "batterycapacity",
+        "rules": [
+            {
+                "t": "set",
+                "p": "payload",
+                "pt": "msg",
+                "to": "payload.percentage",
+                "tot": "msg"
+            },
+            {
+                "t": "set",
+                "p": "topic",
+                "pt": "msg",
+                "to": "emon/powerwall/batterycapacity",
+                "tot": "str"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 160,
+        "y": 460,
+        "wires": [
+            [
+                "389269335e1ad0de"
+            ]
+        ]
+    },
+    {
+        "id": "2a9d525aa2196ace",
+        "type": "json",
+        "z": "410497889f014e5e",
+        "name": "",
+        "property": "payload",
+        "action": "",
+        "pretty": false,
+        "x": 390,
+        "y": 400,
+        "wires": [
+            [
+                "0fff298d8313a28d"
+            ]
+        ]
+    },
+    {
+        "id": "f58cbe3823c83571",
+        "type": "change",
+        "z": "410497889f014e5e",
+        "name": "load_instant_power",
+        "rules": [
+            {
+                "t": "set",
+                "p": "payload",
+                "pt": "msg",
+                "to": "payload.fields.load_instant_power",
+                "tot": "msg"
+            },
+            {
+                "t": "set",
+                "p": "topic",
+                "pt": "msg",
+                "to": "emon/powerwall/loadpower",
+                "tot": "str"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 170,
+        "y": 260,
+        "wires": [
+            [
+                "389269335e1ad0de"
+            ]
+        ]
+    },
+    {
+        "id": "5fdbadbaa356f79d",
+        "type": "subflow:93f485839dfa27a8",
+        "z": "410497889f014e5e",
+        "name": "Powerwall solar",
+        "env": [
+            {
+                "name": "latitude",
+                "value": "50.361344",
+                "type": "num"
+            },
+            {
+                "name": "longitude",
+                "value": "-4.361742",
+                "type": "num"
+            },
+            {
+                "name": "declination",
+                "value": "45",
+                "type": "num"
+            },
+            {
+                "name": "modules power",
+                "value": "10.4",
+                "type": "num"
+            },
+            {
+                "name": "apikey",
+                "type": "cred"
+            },
+            {
+                "name": "watt",
+                "value": "watthours/period",
+                "type": "str"
+            },
+            {
+                "name": "kwhoutput",
+                "type": "bool",
+                "value": "true"
+            },
+            {
+                "name": "showday",
+                "type": "bool",
+                "value": "true"
+            }
+        ],
+        "x": 160,
+        "y": 580,
+        "wires": [
+            [
+                "ea96da3c7e1b01b1",
+                "e3892b44d652150d"
+            ],
+            []
+        ]
+    },
+    {
+        "id": "f377d901c2fa6d96",
+        "type": "inject",
+        "z": "410497889f014e5e",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "21600",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 110,
+        "y": 520,
+        "wires": [
+            [
+                "5fdbadbaa356f79d"
+            ]
+        ]
+    },
+    {
+        "id": "6035cfd09d2862d8",
+        "type": "mqtt out",
+        "z": "410497889f014e5e",
+        "name": "house/weather/forecast/solar",
+        "topic": "house/weather/forecast/solar",
+        "qos": "",
+        "retain": "true",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "1e8c57f46a63ba96",
+        "x": 520,
+        "y": 580,
+        "wires": []
+    },
+    {
+        "id": "e3892b44d652150d",
+        "type": "json",
+        "z": "410497889f014e5e",
+        "name": "",
+        "property": "payload",
+        "action": "str",
+        "pretty": false,
+        "x": 330,
+        "y": 580,
+        "wires": [
+            [
+                "6035cfd09d2862d8",
+                "ea96da3c7e1b01b1"
+            ]
+        ]
+    },
+    {
+        "id": "3de501485e33d18b",
+        "type": "nut-ups",
+        "z": "9c01fcbf7baee112",
+        "name": "",
+        "ups": "apc1@192.168.0.8",
+        "x": 140,
+        "y": 260,
+        "wires": [
+            [
+                "6cf0ed12bebafdfa"
+            ]
+        ]
+    },
+    {
+        "id": "bccb2cb80f50c2dc",
+        "type": "debug",
+        "z": "9c01fcbf7baee112",
+        "name": "debug 1",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 800,
+        "y": 260,
+        "wires": []
+    },
+    {
+        "id": "ceee2be952f2778f",
+        "type": "inject",
+        "z": "9c01fcbf7baee112",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": true,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 110,
+        "y": 140,
+        "wires": [
+            [
+                "3de501485e33d18b"
+            ]
+        ]
+    },
+    {
+        "id": "21516efca7556731",
+        "type": "function",
+        "z": "9c01fcbf7baee112",
+        "name": "Overload",
+        "func": "let load = parseFloat(msg.payload);\nif (load > 50.0) {\n    node.warn(msg);\n    var loadMsg = { topic: \"house/ups/apc1/load\", payload: msg.payload }\n    return loadMsg;\n}\n",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 560,
+        "y": 260,
+        "wires": [
+            [
+                "bccb2cb80f50c2dc"
+            ]
+        ]
+    },
+    {
+        "id": "fc9e46aa1b57332a",
+        "type": "mqtt out",
+        "z": "9c01fcbf7baee112",
+        "name": "house-ups-apc1-load",
+        "topic": "",
+        "qos": "2",
+        "retain": "",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "75af2705.1ed408",
+        "x": 740,
+        "y": 340,
+        "wires": []
+    },
+    {
+        "id": "6cf0ed12bebafdfa",
+        "type": "function",
+        "z": "9c01fcbf7baee112",
+        "name": "Extract load",
+        "func": "var loadMsg = { topic: \"house/ups/apc1/load\", payload: msg.payload.ups.load.value }\nreturn loadMsg;\n",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 350,
+        "y": 260,
+        "wires": [
+            [
+                "21516efca7556731",
+                "fc9e46aa1b57332a"
+            ]
+        ]
+    }
+]
